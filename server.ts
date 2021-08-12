@@ -61,7 +61,6 @@ app.post("/cuisines", async (req, res) => {
 
 // Recipes
 app.get("/recipes", async (req, res) => {
-  console.log(dayjs().isoWeek())
   try {
     // const dbres = await client.query("SELECT * FROM recipes")
     const dbres = await client.query(`
@@ -142,7 +141,7 @@ app.get("/specials", async (req, res) => {
 })
 
 //Recipe Tags
-app.get("/recipetags", async (req, res) => {
+app.get("/recipe/tags", async (req, res) => {
   try {
     const dbres = await client.query(`
     SELECT t.tag
