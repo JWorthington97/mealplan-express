@@ -38,7 +38,7 @@ app.listen(port, () => {
   console.log(`Server is up and running on port ${port}`);
 });
 
-// Routes
+// Routes 
 
 //Cuisines
 app.get("/cuisines", async (req, res) => {
