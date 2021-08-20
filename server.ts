@@ -40,7 +40,7 @@ app.listen(port, () => {
 
 // Routes 
 app.get("/", async (req, res) => {
-  res.status(200)
+  res.status(200).json({message: "Mealplan API"})
 })
 
 //Cuisines
