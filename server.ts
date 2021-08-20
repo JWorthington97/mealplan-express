@@ -167,3 +167,18 @@ app.get("/recipe/tags", async (req, res) => {
     })
   }
 })
+
+//Favourites
+app.post("/favourites", async (req, res) => {
+  const recipeID = req.body.recipeID 
+  const userID = req.body.userID 
+  
+  try {
+    const response = await client.query("INSERT INTO favourites (id, user_id) VALUES ($1, $2)", [recipeID, userID])
+    res.status(201).json({message: "Favourite added"})
+  }
+  catch (ex) {
+    console.log(ex.message)
+    res.status(401).json({message: ex.message})
+  }
+})
