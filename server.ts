@@ -39,6 +39,9 @@ app.listen(port, () => {
 });
 
 // Routes 
+app.get("/", async (req, res) => {
+  res.status(200)
+})
 
 //Cuisines
 app.get("/cuisines", async (req, res) => {
@@ -67,7 +70,7 @@ app.get("/recipes", async (req, res) => {
     SELECT 
       r.id,
       r.name,
-      c.cuisine,
+      c.id as cuisine,
       r.url,
       r.image_url,
       string_agg(tag, ', ') AS tags
@@ -81,7 +84,7 @@ app.get("/recipes", async (req, res) => {
     GROUP BY 
       r.id,
       r.name,
-      c.cuisine,
+      c.id,
       r.url,
         r.image_url;`
         )
@@ -106,29 +109,29 @@ app.post("/recipes", async (req, res) => {
 app.get("/specials", async (req, res) => {
   try {
     const {rows} = await client.query(`
-    SELECT 
-      r.id,
-      r.name,
-      c.cuisine,
-      r.url,
-        r.image_url,
-      string_agg(tag, ', ') AS tags
-    FROM recipes r
-      INNER JOIN recipe_tags rt
-        ON rt.recipe_id = r.id
-      INNER JOIN tags t
-        ON t.id = rt.tag_id
-      INNER JOIN cuisines c
-        ON c.id = r.cuisine_id
-        INNER JOIN specials s
-          ON s.recipe_id = r.id
-        WHERE s.week = $1 AND s.year = $2
-    GROUP BY 
-      r.id,
-      r.name,
-      c.cuisine,
-      r.url,
-        r.image_url;`, [dayjs().isoWeek(), dayjs().year()]
+      SELECT 
+        r.id,
+        r.name,
+        c.id as cuisine,
+        r.url,
+          r.image_url,
+        string_agg(tag, ', ') AS tags
+      FROM recipes r
+        INNER JOIN recipe_tags rt
+          ON rt.recipe_id = r.id
+        INNER JOIN tags t
+          ON t.id = rt.tag_id
+        INNER JOIN cuisines c
+          ON c.id = r.cuisine_id
+          INNER JOIN specials s
+            ON s.recipe_id = r.id
+          WHERE s.week = $1 AND s.year = $2
+      GROUP BY 
+        r.id,
+        r.name,
+        c.id,
+        r.url,
+          r.image_url;`, [dayjs().isoWeek(), dayjs().year()]
         )
       res.status(200).json(rows)
   }
