@@ -174,7 +174,7 @@ app.post("/favourites", async (req, res) => {
   const userID = req.body.userID 
   
   try {
-    const response = await client.query("INSERT INTO favourites (id, user_id) VALUES ($1, $2)", [recipeID, userID])
+    const response = await client.query("INSERT INTO favourites (recipe_id, user_id) VALUES ($1, $2)", [recipeID, userID])
     res.status(201).json({message: "Favourite added"})
   }
   catch (ex) {
