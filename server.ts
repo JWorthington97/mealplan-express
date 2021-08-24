@@ -63,17 +63,21 @@ app.post("/cuisines", async (req, res) => {
 })
 
 // Recipes
-app.get("/recipes", async (req, res) => {
+app.get("/recipes/:userId", async (req, res) => {
   try {
     // const dbres = await client.query("SELECT * FROM recipes")
     const dbres = await client.query(`
     SELECT 
       r.id,
       r.name,
-      c.id as cuisine,
+      c.cuisine,
       r.url,
-      r.image_url,
-      string_agg(tag, ', ') AS tags
+        r.image_url,
+      string_agg(tag, ', ') AS tags,
+        CASE
+          WHEN f.user_id = $1 THEN 1
+            ELSE 0
+        END AS infavourites
     FROM recipes r
       INNER JOIN recipe_tags rt
         ON rt.recipe_id = r.id
@@ -81,12 +85,15 @@ app.get("/recipes", async (req, res) => {
         ON t.id = rt.tag_id
       INNER JOIN cuisines c
         ON c.id = r.cuisine_id
+      LEFT JOIN favourites f
+          ON f.recipe_id = r.id AND f.user_id = $1
     GROUP BY 
       r.id,
       r.name,
-      c.id,
+      c.cuisine,
       r.url,
-        r.image_url;`
+        r.image_url,
+        f.id;`, [req.params.userId]
         )
     res.json(dbres.rows)
   }
@@ -106,32 +113,40 @@ app.post("/recipes", async (req, res) => {
 })
 
 // Specials
-app.get("/specials", async (req, res) => {
+app.get("/specials/:userId", async (req, res) => {
   try {
     const {rows} = await client.query(`
-      SELECT 
-        r.id,
-        r.name,
-        c.id as cuisine,
-        r.url,
-          r.image_url,
-        string_agg(tag, ', ') AS tags
-      FROM recipes r
-        INNER JOIN recipe_tags rt
-          ON rt.recipe_id = r.id
-        INNER JOIN tags t
-          ON t.id = rt.tag_id
-        INNER JOIN cuisines c
-          ON c.id = r.cuisine_id
-          INNER JOIN specials s
-            ON s.recipe_id = r.id
-          WHERE s.week = $1 AND s.year = $2
-      GROUP BY 
-        r.id,
-        r.name,
-        c.id,
-        r.url,
-          r.image_url;`, [dayjs().isoWeek(), dayjs().year()]
+    SELECT 
+      r.id,
+      r.name,
+      c.cuisine,
+      r.url,
+      r.image_url,
+      string_agg(tag, ', ') AS tags,
+      CASE
+        WHEN f.user_id = $3 THEN 1
+          ELSE 0
+      END AS infavourites
+    FROM recipes r
+      INNER JOIN recipe_tags rt
+        ON rt.recipe_id = r.id
+      INNER JOIN tags t
+        ON t.id = rt.tag_id
+      INNER JOIN cuisines c
+        ON c.id = r.cuisine_id
+        INNER JOIN specials s
+          ON s.recipe_id = r.id
+        LEFT JOIN favourites f
+          ON f.recipe_id = r.id AND f.user_id = $3
+        WHERE s.week = $1 AND s.year = $2
+    GROUP BY 
+      r.id,
+      r.name,
+      c.cuisine,
+      r.url,
+        r.image_url,
+        r.image_url,
+        f.user_id;`, [dayjs().isoWeek(), dayjs().year(), req.params.userId]
         )
       res.status(200).json(rows)
   }
