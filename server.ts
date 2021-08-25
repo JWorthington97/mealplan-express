@@ -70,7 +70,7 @@ app.get("/recipes/:userId", async (req, res) => {
     SELECT 
       r.id,
       r.name,
-      c.cuisine,
+      c.id as cuisine,
       r.url,
         r.image_url,
       string_agg(tag, ', ') AS tags,
@@ -90,10 +90,10 @@ app.get("/recipes/:userId", async (req, res) => {
     GROUP BY 
       r.id,
       r.name,
-      c.cuisine,
+      c.id,
       r.url,
-        r.image_url,
-        f.id;`, [req.params.userId]
+      r.image_url,
+      f.id;`, [req.params.userId]
         )
     res.json(dbres.rows)
   }
