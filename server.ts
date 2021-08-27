@@ -77,7 +77,11 @@ app.get("/recipes/:userId", async (req, res) => {
         CASE
           WHEN f.user_id = $1 THEN 1
             ELSE 0
-        END AS infavourites
+        END AS infavourites,
+        CASE
+          WHEN s.recipe_id IS NOT NULL THEN 1
+            ELSE 0
+        END AS specials
     FROM recipes r
       INNER JOIN recipe_tags rt
         ON rt.recipe_id = r.id
@@ -87,13 +91,16 @@ app.get("/recipes/:userId", async (req, res) => {
         ON c.id = r.cuisine_id
       LEFT JOIN favourites f
           ON f.recipe_id = r.id AND f.user_id = $1
+      LEFT JOIN specials s
+      		ON s.recipe_id = r.id AND s.week = $2 AND s.year = $3
     GROUP BY 
       r.id,
       r.name,
       c.id,
       r.url,
       r.image_url,
-      f.id;`, [req.params.userId]
+      f.id,
+      s.recipe_id;`, [req.params.userId, dayjs().isoWeek(), dayjs().year()]
         )
     res.json(dbres.rows)
   }
@@ -195,5 +202,23 @@ app.post("/favourites", async (req, res) => {
   catch (ex) {
     console.log(ex.message)
     res.status(401).json({message: ex.message})
+  }
+})
+
+
+app.delete("/favourites", async (req, res) => {
+  try {
+    const { userID, recipeID } = req.body
+    const dbres = await client.query("DELETE FROM favourites WHERE recipe_id = $1 and user_id = $2 RETURNING *", [recipeID, userID])
+    console.log(dbres.rows)
+    res.status(200).json({
+      message: "Favourite removed"
+    })
+  }
+  catch (error) {
+    console.log(error.message)
+    res.status(400).json({
+      message: "Unable to remove favourite"
+    })
   }
 })
