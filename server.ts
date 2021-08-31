@@ -5,6 +5,7 @@ import cors from "cors";
 import dayjs from 'dayjs'
 import isoWeek from 'dayjs/plugin/isoWeek'
 dayjs.extend(isoWeek)
+var format = require('pg-format');
 
 config(); //Read .env file lines as though they were env vars.
 
@@ -81,7 +82,12 @@ app.get("/recipes/:userId", async (req, res) => {
         CASE
           WHEN s.recipe_id IS NOT NULL THEN 1
             ELSE 0
-        END AS specials
+        END AS specials,
+        CASE
+          WHEN p.recipe_id IS NOT NULL THEN 1
+            ELSE 0
+        END AS inplan,
+        cooked
     FROM recipes r
       INNER JOIN recipe_tags rt
         ON rt.recipe_id = r.id
@@ -93,6 +99,8 @@ app.get("/recipes/:userId", async (req, res) => {
           ON f.recipe_id = r.id AND f.user_id = $1
       LEFT JOIN specials s
       		ON s.recipe_id = r.id AND s.week = $2 AND s.year = $3
+      LEFT JOIN plan p
+      		ON p.recipe_id = r.id AND s.week = $2 AND s.year = $3 AND p.user_id = $1
     GROUP BY 
       r.id,
       r.name,
@@ -100,7 +108,9 @@ app.get("/recipes/:userId", async (req, res) => {
       r.url,
       r.image_url,
       f.id,
-      s.recipe_id;`, [req.params.userId, dayjs().isoWeek(), dayjs().year()]
+      s.recipe_id,
+      p.recipe_id,
+      p.cooked;`, [req.params.userId, dayjs().isoWeek(), dayjs().year()]
         )
     res.json(dbres.rows)
   }
@@ -219,6 +229,21 @@ app.delete("/favourites", async (req, res) => {
     console.log(error.message)
     res.status(400).json({
       message: "Unable to remove favourite"
+    })
+  }
+})
+
+// Mealplan
+app.post("/plan", async (req, res) => {
+  try {
+    const { userId, recipes } = req.body
+    const dbres = await client.query(format("INSERT INTO plan"))
+    //https://stackoverflow.com/questions/34990186/how-do-i-properly-insert-multiple-rows-into-pg-with-node-postgres
+  }
+  catch (error) {
+    console.log(error)
+    res.status(400).json({
+      message: "Unable to add recipes to mealplan"
     })
   }
 })
