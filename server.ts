@@ -254,3 +254,20 @@ app.post("/plan", async (req, res) => {
   }
 })
 
+app.delete("/plan", async (req, res) => {
+  try {
+    const { userID, recipeID } = req.body
+    const dbres = await client.query("DELETE FROM plan WHERE user_id = $1 AND recipe_id = $2 AND week = $3 AND year = $4",
+      [userID, recipeID, dayjs().isoWeek(), dayjs().year()])
+    res.status(200).json({
+      message: "Removed from plan"
+    })
+  }
+  catch (error) {
+    console.log(error)
+    res.status(400).json({
+      message: "Unable to remove recipe to mealplan"
+    })
+  }
+})
+
