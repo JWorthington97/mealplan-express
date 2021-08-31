@@ -87,7 +87,10 @@ app.get("/recipes/:userId", async (req, res) => {
           WHEN p.recipe_id IS NOT NULL THEN 1
             ELSE 0
         END AS inplan,
-        cooked
+        CASE
+          WHEN p.cooked IS NOT NULL THEN 1
+            ELSE 0
+        END AS cooked
     FROM recipes r
       INNER JOIN recipe_tags rt
         ON rt.recipe_id = r.id
