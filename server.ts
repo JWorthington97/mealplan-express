@@ -81,7 +81,15 @@ app.get("/recipes/:userId", async (req, res) => {
         CASE
           WHEN s.recipe_id IS NOT NULL THEN 1
             ELSE 0
-        END AS specials
+        END AS specials,
+        CASE
+          WHEN p.recipe_id IS NOT NULL THEN 1
+            ELSE 0
+        END AS inplan,
+        CASE
+          WHEN p.cooked IS NOT NULL THEN 1
+            ELSE 0
+        END AS cooked
     FROM recipes r
       INNER JOIN recipe_tags rt
         ON rt.recipe_id = r.id
@@ -93,6 +101,8 @@ app.get("/recipes/:userId", async (req, res) => {
           ON f.recipe_id = r.id AND f.user_id = $1
       LEFT JOIN specials s
       		ON s.recipe_id = r.id AND s.week = $2 AND s.year = $3
+      LEFT JOIN plan p
+      		ON p.recipe_id = r.id AND s.week = $2 AND s.year = $3 AND p.user_id = $1
     GROUP BY 
       r.id,
       r.name,
@@ -100,7 +110,9 @@ app.get("/recipes/:userId", async (req, res) => {
       r.url,
       r.image_url,
       f.id,
-      s.recipe_id;`, [req.params.userId, dayjs().isoWeek(), dayjs().year()]
+      s.recipe_id,
+      p.recipe_id,
+      p.cooked;`, [req.params.userId, dayjs().isoWeek(), dayjs().year()]
         )
     res.json(dbres.rows)
   }
@@ -222,3 +234,40 @@ app.delete("/favourites", async (req, res) => {
     })
   }
 })
+
+// Mealplan
+app.post("/plan", async (req, res) => {
+  try {
+    const { userID, recipeID } = req.body
+    const dbres = await client.query("INSERT INTO plan (user_id, recipe_id, week, year) VALUES ($1, $2, $3, $4)",
+      [userID, recipeID, dayjs().isoWeek(), dayjs().year()])
+    //https://stackoverflow.com/questions/34990186/how-do-i-properly-insert-multiple-rows-into-pg-with-node-postgres
+    res.status(201).json({
+      message: "Added to plan"
+    })
+  }
+  catch (error) {
+    console.log(error)
+    res.status(400).json({
+      message: "Unable to add recipes to mealplan"
+    })
+  }
+})
+
+app.delete("/plan", async (req, res) => {
+  try {
+    const { userID, recipeID } = req.body
+    const dbres = await client.query("DELETE FROM plan WHERE user_id = $1 AND recipe_id = $2 AND week = $3 AND year = $4",
+      [userID, recipeID, dayjs().isoWeek(), dayjs().year()])
+    res.status(200).json({
+      message: "Removed from plan"
+    })
+  }
+  catch (error) {
+    console.log(error)
+    res.status(400).json({
+      message: "Unable to remove recipe to mealplan"
+    })
+  }
+})
+
