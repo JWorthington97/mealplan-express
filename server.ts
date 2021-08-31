@@ -5,7 +5,6 @@ import cors from "cors";
 import dayjs from 'dayjs'
 import isoWeek from 'dayjs/plugin/isoWeek'
 dayjs.extend(isoWeek)
-var format = require('pg-format');
 
 config(); //Read .env file lines as though they were env vars.
 
@@ -239,9 +238,13 @@ app.delete("/favourites", async (req, res) => {
 // Mealplan
 app.post("/plan", async (req, res) => {
   try {
-    const { userId, recipes } = req.body
-    const dbres = await client.query(format("INSERT INTO plan"))
+    const { userID, recipeID } = req.body
+    const dbres = await client.query("INSERT INTO plan (user_id, recipe_id, week, year) VALUES ($1, $2, $3, $4)",
+      [userID, recipeID, dayjs().isoWeek(), dayjs().year()])
     //https://stackoverflow.com/questions/34990186/how-do-i-properly-insert-multiple-rows-into-pg-with-node-postgres
+    res.status(201).json({
+      message: "Added to plan"
+    })
   }
   catch (error) {
     console.log(error)
@@ -250,3 +253,4 @@ app.post("/plan", async (req, res) => {
     })
   }
 })
+
