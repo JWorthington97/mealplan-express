@@ -86,10 +86,8 @@ app.get("/recipes/:userId", async (req, res) => {
           WHEN p.recipe_id IS NOT NULL THEN 1
             ELSE 0
         END AS inplan,
-        CASE
-          WHEN p.cooked IS NOT NULL THEN 1
-            ELSE 0
-        END AS cooked
+        cooked,
+        p.day
     FROM recipes r
       INNER JOIN recipe_tags rt
         ON rt.recipe_id = r.id
@@ -102,7 +100,7 @@ app.get("/recipes/:userId", async (req, res) => {
       LEFT JOIN specials s
       		ON s.recipe_id = r.id AND s.week = $2 AND s.year = $3
       LEFT JOIN plan p
-      		ON p.recipe_id = r.id AND s.week = $2 AND s.year = $3 AND p.user_id = $1
+      		ON p.recipe_id = r.id AND p.week = $2 AND p.year = $3 AND p.user_id = $1
     GROUP BY 
       r.id,
       r.name,
@@ -112,7 +110,8 @@ app.get("/recipes/:userId", async (req, res) => {
       f.id,
       s.recipe_id,
       p.recipe_id,
-      p.cooked;`, [req.params.userId, dayjs().isoWeek(), dayjs().year()]
+      p.cooked,
+      p.day;`, [req.params.userId, dayjs().isoWeek(), dayjs().year()]
         )
     res.json(dbres.rows)
   }
@@ -241,7 +240,6 @@ app.post("/plan", async (req, res) => {
     const { userID, recipeID } = req.body
     const dbres = await client.query("INSERT INTO plan (user_id, recipe_id, week, year) VALUES ($1, $2, $3, $4)",
       [userID, recipeID, dayjs().isoWeek(), dayjs().year()])
-    //https://stackoverflow.com/questions/34990186/how-do-i-properly-insert-multiple-rows-into-pg-with-node-postgres
     res.status(201).json({
       message: "Added to plan"
     })
@@ -271,3 +269,19 @@ app.delete("/plan", async (req, res) => {
   }
 })
 
+app.patch("/plan", async (req, res) => {
+  try {
+    const { userID, recipeID, dayID } = req.body
+    const dbres = await client.query("UPDATE plan SET day = $1 WHERE user_id = $2 AND recipe_id = $3 AND week = $4 AND year = $5 ",
+    [dayID, userID, recipeID, dayjs().isoWeek(), dayjs().year()])
+    res.status(200).json({
+      message: "day updated"
+    })
+  }
+  catch (error) {
+    console.log(error)
+    res.status(400).json({
+      message: "unable to update mealplan day"
+    })
+  }
+})
